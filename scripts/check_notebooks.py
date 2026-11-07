@@ -32,6 +32,7 @@ def main():
         notebook = nbformat.from_dict(json.loads(path.read_text(encoding="utf-8")))
         nbformat.validate(notebook)
         relative = path.relative_to(ROOT / "notebooks").as_posix()
+        seen_ids = set()
         for index, cell in enumerate(notebook.cells):
             if cell.cell_type != "code":
                 continue
@@ -39,6 +40,10 @@ def main():
             source = "".join(cell.source)
             cell_id = cell.metadata.get("id")
             location = f"{relative}:cell {index + 1} ({cell_id})"
+            if cell_id is not None:
+                if cell_id in seen_ids:
+                    raise ValueError(f"Duplicate code-cell metadata id: {location}")
+                seen_ids.add(cell_id)
             if cell_id in YAML_CELLS.get(relative, set()):
                 config = yaml.safe_load(source)
                 if not isinstance(config, dict) or "Huggy" not in config.get("behaviors", {}):
